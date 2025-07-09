@@ -1,0 +1,50 @@
+#!/bin/bash
+matrices=(
+    "Chem97ZtZ" "Dubcova1" "Dubcova2" "Dubcova3" "G2_circuit" "Kuu" "LF10000" "LFAT5000" 
+    "Muu" "Pres_Poisson" "aft01" "apache1" "bcsstk08" "bcsstk09" "bcsstk10" "bcsstk11" 
+    "bcsstk12" "bcsstk13" "bcsstk14" "bcsstk15" "bcsstk16" "bcsstk17" "bcsstk18" "bcsstk21" 
+    "bcsstk23" "bcsstk25" "bcsstk26" "bcsstk27" "bcsstk28" "bcsstk36" "bcsstk38" "bcsstm08" 
+    "bcsstm09" "bcsstm11" "bcsstm12" "bcsstm21" "bcsstm23" "bcsstm24" "bcsstm25" "bcsstm26" 
+    "bcsstm39" "bloweybq" "bodyy4" "bodyy5" "bodyy6" "bundle1" "cant" "cbuckle" "cfd1" "crystm01" 
+    "crystm02" "crystm03" "ct20stif" "cvxbqp1" "denormal" "ex10" "ex10hs" "ex13" "ex15" "ex3" "ex33" 
+    "finan512" "fv1" "fv2" "fv3" "gridgena" "gyro" "gyro_k" "gyro_m" "jnlbrng1" "mhd3200b" "mhd4800b" 
+    "minsurfo" "msc01050" "msc01440" "msc04515" "msc10848" "msc23052" "nasa1824" "nasa2146" "nasa2910" 
+    "nasa4704" "nasasrb" "nd3k" "obstclae" "olafu" "parabolic_fem" "plat1919" "plbuckle" "qa8fm" 
+    "raefsky4" "s1rmq4m1" "s1rmt3m1" "s2rmq4m1" "s2rmt3m1" "s3rmq4m1" "s3rmt3m1" "s3rmt3m3" 
+    "shallow_water1" "shallow_water2" "sts4098" "t2dah_e" "t2dal_e" "t3dl_e" "ted_B" "ted_B_unscaled" 
+    "thermal1" "thermomech_TC" "thermomech_TK" "thermomech_dM" "torsion1" "vanbody" "wathen100" "wathen120"
+)
+
+# Loop through each matrix and generate the corresponding bash script
+for matrix in "${matrices[@]}"; do
+    script_name="job_submit_${matrix}.sh"
+    cat << EOF > $script_name
+#!/bin/bash
+
+#SBATCH --gpus-per-node=1
+#SBATCH --cpus-per-task=1
+#SBATCH --export=ALL
+#SBATCH --job-name="ilu0_${matrix}"
+#SBATCH --nodes=1
+#SBATCH --output="ilu0_${matrix}.%j.%N.out"
+#SBATCH -t 11:59:00
+
+module load StdEnv/2020
+module load intel/2022.1.0
+module load anaconda3/2021.05
+
+# Loop through relevant .mtx files in the matrix directory
+for mtx_file in /scratch/k/kazem/dama/data_analysis/matrix_k/${matrix}/${matrix}.mtx; do
+    if [ -f "\$mtx_file" ]; then
+        ./conjugateGradientPrecond "\$mtx_file" 0.01
+        ./conjugateGradientPrecond "\$mtx_file" 0.05
+        ./conjugateGradientPrecond "\$mtx_file" 0.1
+    fi
+done
+EOF
+
+    # Make the script executable
+    chmod +x $script_name
+done
+
+echo "Bash scripts generated successfully"

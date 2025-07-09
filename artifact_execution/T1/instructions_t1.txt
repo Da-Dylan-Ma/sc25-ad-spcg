@@ -1,0 +1,2 @@
+In Appendix, it was mentioned to run the MATLAB script.
+As an alternative, one may directly execute the bash script run_preparation.sh under this directory.
